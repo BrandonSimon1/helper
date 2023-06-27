@@ -26,26 +26,26 @@ struct History {
 }
 
 lazy_static! {
-    static ref HELPER_HISTORY_FILE: String = env::var("HELPER_HISTORY_FILE").unwrap_or({
+    static ref HLPR_HISTORY_FILE: String = env::var("HLPR_HISTORY_FILE").unwrap_or({
         let mut p = env::var("HOME").unwrap().to_string();
         p.push_str("/.hlpr/history.json");
         p
     });
-    static ref HELPER_SYSTEM_MESSAGE: String =
-        env::var("HELPER_SYSTEM_MESSAGE").unwrap_or("".to_string());
+    static ref HLPR_SYSTEM_MESSAGE: String =
+        env::var("HLPR_SYSTEM_MESSAGE").unwrap_or("".to_string());
 }
 
 // env var with static lifetime
 #[derive(Parser, Debug)]
 #[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="hlpr", long_about = None)]
 struct Args {
-    #[arg(short = 's', long = "system", default_value = HELPER_SYSTEM_MESSAGE.as_str())]
+    #[arg(short = 's', long = "system", default_value = HLPR_SYSTEM_MESSAGE.as_str())]
     system: Option<String>,
     #[arg(short = 'c', long = "conversation", conflicts_with = "new")]
     conversation: Option<i64>,
     #[arg(short = 'n', long = "new")]
     new: bool,
-    #[arg(short = 'H', long = "history", default_value = HELPER_HISTORY_FILE.as_str())]
+    #[arg(short = 'H', long = "history", default_value = HLPR_HISTORY_FILE.as_str())]
     history_file_path: Option<String>,
     #[arg(short = 'm', long = "message")]
     message: Vec<String>,

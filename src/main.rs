@@ -28,7 +28,7 @@ struct History {
 lazy_static! {
     static ref HELPER_HISTORY_FILE: String = env::var("HELPER_HISTORY_FILE").unwrap_or({
         let mut p = env::var("HOME").unwrap().to_string();
-        p.push_str("/.helper/history.json");
+        p.push_str("/.hlpr/history.json");
         p
     });
     static ref HELPER_SYSTEM_MESSAGE: String =
@@ -37,7 +37,7 @@ lazy_static! {
 
 // env var with static lifetime
 #[derive(Parser, Debug)]
-#[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="helper", long_about = None)]
+#[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="hlpr", long_about = None)]
 struct Args {
     #[arg(short = 's', long = "system", default_value = HELPER_SYSTEM_MESSAGE.as_str())]
     system: Option<String>,

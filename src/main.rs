@@ -26,15 +26,18 @@ struct History {
 }
 
 lazy_static! {
-    static ref HELPER_HISTORY_FILE: String =
-        env::var("HELPER_HISTORY_FILE").unwrap_or("history.json".to_string());
+    static ref HELPER_HISTORY_FILE: String = env::var("HELPER_HISTORY_FILE").unwrap_or({
+        let mut p = env::var("HOME").unwrap().to_string();
+        p.push_str("/.helper/history.json");
+        p
+    });
     static ref HELPER_SYSTEM_MESSAGE: String =
         env::var("HELPER_SYSTEM_MESSAGE").unwrap_or("".to_string());
 }
 
 // env var with static lifetime
 #[derive(Parser, Debug)]
-#[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="llm cli", long_about = None)]
+#[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="helper", long_about = None)]
 struct Args {
     #[arg(short = 's', long = "system", default_value = HELPER_SYSTEM_MESSAGE.as_str())]
     system: Option<String>,
@@ -44,10 +47,26 @@ struct Args {
     new: bool,
     #[arg(short = 'H', long = "history", default_value = HELPER_HISTORY_FILE.as_str())]
     history_file_path: Option<String>,
-    #[arg(short = 'i', long = "stdin", default_value = "false")]
-    stdin: bool,
     #[arg(short = 'm', long = "message")]
-    message: Option<String>,
+    message: Vec<String>,
+}
+
+fn content_or_file_content_or_stdin(s: String) -> String {
+    if s == "-" {
+        let mut message = String::new();
+        io::stdin()
+            .read_to_string(&mut message)
+            .expect("Failed to read stdin");
+        return message;
+    }
+    let path = Path::new(&s);
+    match path.try_exists() {
+        Ok(exists) if exists => {
+            let file_contents = fs::read_to_string(path).unwrap();
+            file_contents
+        }
+        Ok(_) | Err(_) => s,
+    }
 }
 
 #[tokio::main]
@@ -74,15 +93,7 @@ async fn main() {
         let system_message: ChatCompletionMessage;
         if args.system.is_some() {
             let s = args.system.clone().unwrap();
-            let path = Path::new(&s);
-            match path.try_exists() {
-                Ok(exists) if exists => {
-                    system_message_text = fs::read_to_string(path).unwrap();
-                }
-                Ok(_) | Err(_) => {
-                    system_message_text = args.system.unwrap();
-                }
-            }
+            system_message_text = content_or_file_content_or_stdin(s);
             system_message = ChatCompletionMessage {
                 content: Some(system_message_text),
                 role: ChatCompletionMessageRole::System,
@@ -139,16 +150,13 @@ async fn main() {
     };
 
     // if stdin is true, get message from stdin
-    let message = if args.stdin {
+    let message = {
         let mut message = String::new();
-        io::stdin()
-            .read_to_string(&mut message)
-            .expect("Failed to read stdin");
-        message.push_str("\n");
-        message.push_str(args.message.unwrap().as_str());
+        for m in args.message {
+            message.push_str(&content_or_file_content_or_stdin(m).as_str());
+            message.push_str("\n");
+        }
         message
-    } else {
-        args.message.unwrap()
     };
 
     // add message to conversation
@@ -180,5 +188,6 @@ async fn main() {
         .insert(conversation.id, conversation);
 
     let history_file_contents = serde_json::to_string(&history.unwrap()).unwrap();
+    fs::create_dir_all(history_file_path.parent().unwrap()).unwrap();
     fs::write(history_file_path, history_file_contents).unwrap();
 }

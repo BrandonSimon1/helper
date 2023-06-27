@@ -1,8 +1,6 @@
 # Helper CLI Tool
 
-Helper CLI is a command line tool built in Rust that utilizes OpenAI chat models. It facilitates ongoing or one-off conversations with the AI and stores conversation histories and the current conversation in a json file. All input goes to the same conversation until you create a new one, and you may go back to a pervious conversation by specifying the conversation id once, after which it is the current conveersation. 
-
-You can set a default system message with an environment variable or provide it as an argument when you create a new conversation.
+Helper CLI is a command line tool built in Rust that utilizes OpenAI chat models. It facilitates ongoing or one-off conversations with the AI and stores conversation histories and the current conversation in a json file. 
 
 Helper is great for use in scripts and integrates well with traditional shell tools!
 
@@ -49,6 +47,11 @@ To start using the Helper CLI tool, you will need to set the `OPENAI_API_KEY` en
 - `-m, --message`: The user message to be sent to the AI model.
 
   If both stdin and message arguments are provided, the message argument will be appended to the stdin content separated by a newline. This is useful when discussing a file's content with the AI and providing additional context or questions about the file.
+
+  All input goes to the same conversation until you create a new one, and you may go back to a pervious conversation by specifying the conversation id once, after which it is the current conversation. 
+
+  You can set a default system message with an environment variable or provide it as an argument when you create a new conversation.
+
 
 ### Examples
 

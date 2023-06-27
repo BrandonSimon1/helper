@@ -42,7 +42,7 @@ To start using the hlpr CLI tool, you will need to set the `OPENAI_API_KEY` envi
 - `-s, --system`: The system message to provide context for the conversation or the text file containing the system message. By default, the value is set to the `HLPR_SYSTEM_MESSAGE` environment variable.
 - `-c, --conversation`: The ID of an existing conversation to continue.
 - `-n, --new`: Create a new conversation.
-- `-H, --history`: The path to the history JSON file. By default, the value is set to the `HLPR_HISTORY_FILE` environment variable.
+- `-H, --history`: The path to the history JSON file. By default, the value is set to the `HLPR_HISTORY_FILE` environment variable. If neither the env var nor arg are provided, the history file is created at $HOME/.hlpr/history.json
 - `-m, --message`: The user message to be sent to the AI model. Can be literal content or a file path (which is replaced with its content). You may specify multiple, and the contents will be joined with newlines. If you specify '-', hlpr will put any stdin in that position.
 
 All input goes to the same conversation until you create a new one, and you may go back to a pervious conversation by specifying the conversation id once, after which it is the current conversation. 

@@ -31,15 +31,14 @@ lazy_static! {
         p.push_str("/.hlpr/history.json");
         p
     });
-    static ref HLPR_SYSTEM_MESSAGE: String =
-        env::var("HLPR_SYSTEM_MESSAGE").unwrap_or("".to_string());
+    static ref HLPR_SYSTEM_MESSAGE_ENV: Option<String> = env::var("HLPR_SYSTEM_MESSAGE").ok();
 }
 
 // env var with static lifetime
 #[derive(Parser, Debug)]
 #[command(author="Brandon Simon <brandon.n.simon@gmail.com", version="v0.1.0", about="hlpr", long_about = None)]
 struct Args {
-    #[arg(short = 's', long = "system", default_value = HLPR_SYSTEM_MESSAGE.as_str())]
+    #[arg(short = 's', long = "system")]
     system: Option<String>,
     #[arg(short = 'c', long = "conversation", conflicts_with = "new")]
     conversation: Option<i64>,
@@ -90,40 +89,51 @@ async fn main() {
     if args.new || history.is_none() {
         //args.system is either the system message or the path to a text file containing it. First see if a file exists then see if not use it as context
         let system_message_text: String;
-        let system_message: ChatCompletionMessage;
-        if args.system.is_some() {
-            let s = args.system.clone().unwrap();
+        let system_message: Option<ChatCompletionMessage>;
+        let s: String;
+        if args.system.is_some() || HLPR_SYSTEM_MESSAGE_ENV.is_some() {
+            if args.system.is_some() {
+                s = args.system.clone().unwrap();
+            } else {
+                s = HLPR_SYSTEM_MESSAGE_ENV.clone().unwrap();
+            }
             system_message_text = content_or_file_content_or_stdin(s);
-            system_message = ChatCompletionMessage {
+            system_message = Some(ChatCompletionMessage {
                 content: Some(system_message_text),
                 role: ChatCompletionMessageRole::System,
                 name: None,
                 function_call: None,
+            });
+        } else {
+            system_message = None;
+        }
+        if history.is_none() {
+            let mut conversation = Conversation {
+                id: 0,
+                messages: Vec::new(),
             };
-            if history.is_none() {
-                let mut conversation = Conversation {
-                    id: 0,
-                    messages: Vec::new(),
-                };
-                conversation.messages.push(system_message);
-                let mut h = History {
-                    current_conversation_id: conversation.id,
-                    conversations: HashMap::new(),
-                };
-                h.current_conversation_id = conversation.id;
-                h.conversations.insert(conversation.id, conversation);
-                history = Some(h);
-            } else {
-                let mut h = history.unwrap();
-                let mut conversation = Conversation {
-                    id: h.conversations.len() as i64,
-                    messages: Vec::new(),
-                };
-                conversation.messages.push(system_message);
-                h.current_conversation_id = conversation.id;
-                h.conversations.insert(conversation.id, conversation);
-                history = Some(h);
+            if system_message.is_some() {
+                conversation.messages.push(system_message.unwrap());
             }
+            let mut h = History {
+                current_conversation_id: conversation.id,
+                conversations: HashMap::new(),
+            };
+            h.current_conversation_id = conversation.id;
+            h.conversations.insert(conversation.id, conversation);
+            history = Some(h);
+        } else {
+            let mut h = history.unwrap();
+            let mut conversation = Conversation {
+                id: h.conversations.len() as i64,
+                messages: Vec::new(),
+            };
+            if system_message.is_some() {
+                conversation.messages.push(system_message.unwrap());
+            }
+            h.current_conversation_id = conversation.id;
+            h.conversations.insert(conversation.id, conversation);
+            history = Some(h);
         }
     }
 

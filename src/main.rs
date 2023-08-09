@@ -180,7 +180,7 @@ async fn main() {
     conversation.messages.push(message.clone());
 
     // get completion from openai
-    let chat_completion = ChatCompletion::builder("gpt-4-0314", conversation.messages.clone())
+    let chat_completion = ChatCompletion::builder("gpt-4", conversation.messages.clone())
         .create()
         .await
         .unwrap();

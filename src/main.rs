@@ -86,35 +86,32 @@ async fn main() {
         None
     };
 
+    let system_message_text: String;
+    let system_message: Option<ChatCompletionMessage>;
+    let s: String;
+    if args.system.is_some() || HLPR_SYSTEM_MESSAGE_ENV.is_some() {
+        if args.system.is_some() {
+            s = args.system.clone().unwrap();
+        } else {
+            s = HLPR_SYSTEM_MESSAGE_ENV.clone().unwrap();
+        }
+        system_message_text = content_or_file_content_or_stdin(s);
+        system_message = Some(ChatCompletionMessage {
+            content: Some(system_message_text),
+            role: ChatCompletionMessageRole::System,
+            name: None,
+            function_call: None,
+        });
+    } else {
+        system_message = None;
+    }
     if args.new || history.is_none() {
         //args.system is either the system message or the path to a text file containing it. First see if a file exists then see if not use it as context
-        let system_message_text: String;
-        let system_message: Option<ChatCompletionMessage>;
-        let s: String;
-        if args.system.is_some() || HLPR_SYSTEM_MESSAGE_ENV.is_some() {
-            if args.system.is_some() {
-                s = args.system.clone().unwrap();
-            } else {
-                s = HLPR_SYSTEM_MESSAGE_ENV.clone().unwrap();
-            }
-            system_message_text = content_or_file_content_or_stdin(s);
-            system_message = Some(ChatCompletionMessage {
-                content: Some(system_message_text),
-                role: ChatCompletionMessageRole::System,
-                name: None,
-                function_call: None,
-            });
-        } else {
-            system_message = None;
-        }
         if history.is_none() {
-            let mut conversation = Conversation {
+            let conversation = Conversation {
                 id: 0,
                 messages: Vec::new(),
             };
-            if system_message.is_some() {
-                conversation.messages.push(system_message.unwrap());
-            }
             let mut h = History {
                 current_conversation_id: conversation.id,
                 conversations: HashMap::new(),
@@ -124,13 +121,10 @@ async fn main() {
             history = Some(h);
         } else {
             let mut h = history.unwrap();
-            let mut conversation = Conversation {
+            let conversation = Conversation {
                 id: h.conversations.len() as i64,
                 messages: Vec::new(),
             };
-            if system_message.is_some() {
-                conversation.messages.push(system_message.unwrap());
-            }
             h.current_conversation_id = conversation.id;
             h.conversations.insert(conversation.id, conversation);
             history = Some(h);
@@ -179,8 +173,18 @@ async fn main() {
 
     conversation.messages.push(message.clone());
 
+    let messages_to_send = if system_message.is_some() {
+        let mut c = conversation
+            .messages
+            .clone();
+        c.insert(0, system_message.unwrap());
+        c
+    } else {
+        conversation.messages.clone()
+    };
+
     // get completion from openai
-    let chat_completion = ChatCompletion::builder("gpt-4-1106-preview", conversation.messages.clone())
+    let chat_completion = ChatCompletion::builder("gpt-4-1106-preview", messages_to_send)
         .create()
         .await
         .unwrap();
